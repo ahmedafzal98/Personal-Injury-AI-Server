@@ -32,7 +32,7 @@ const FileUploader = ({
 
     try {
       const response = await fetch(
-        "https://personal-injury-ai-server.onrender.com/extract",
+        "https://personal-injury-ai-server-hlj8.onrender.com/extract",
         {
           method: "POST",
           body: formData,
