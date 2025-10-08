@@ -48,7 +48,7 @@ const FileUploader = ({
       // Simulated AI summary
       setTimeout(() => {
         setSummary(
-          "This document discusses personal injury claims, evidence collection, and compensation calculation. It highlights the importance of documentation and timely reporting."
+          "Once the OpenAI API is integrated, the AI will provide a clear 10-point summary of your document."
         );
       }, 2000);
     } catch (err) {
