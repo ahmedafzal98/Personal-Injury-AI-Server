@@ -11,7 +11,7 @@ origins = [
     "http://localhost",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://personal-injury-ai-client.onrender.com,
+    "https://personal-injury-ai-client.onrender.com",
 ]
 
 app.add_middleware(
