@@ -6,7 +6,7 @@ import os
 
 app = FastAPI(title="Document Extraction API", version="1.0")
 
-# ✅ CORS FIX HERE
+# ✅ CORS configuration
 origins = [
     "http://localhost",
     "http://localhost:5173",
@@ -33,16 +33,43 @@ def root():
 async def extract_text(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Save uploaded file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        return {"error": f"Failed to save uploaded file: {str(e)}"}
 
+    # Extract text
     try:
         text = extract_text_auto(file_path)
-        os.remove(file_path)
+
+        # Check if OCR failed
+        if text.startswith("❌ OCR failed:"):
+            response = {
+                "filename": file.filename,
+                "error": text,  # Return OCR error
+                "text_length": 0,
+                "extracted_text": ""
+            }
+        else:
+            response = {
+                "filename": file.filename,
+                "text_length": len(text),
+                "extracted_text": text,
+            }
+
+        return response
+
+    except Exception as e:
         return {
             "filename": file.filename,
-            "text_length": len(text),
-            "extracted_text": text,
+            "error": f"Text extraction failed: {str(e)}",
+            "text_length": 0,
+            "extracted_text": ""
         }
-    except Exception as e:
-        return {"error": str(e)}
+
+    finally:
+        # Remove uploaded file to save space
+        if os.path.exists(file_path):
+            os.remove(file_path)

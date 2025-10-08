@@ -1,6 +1,6 @@
 import mimetypes
 import os
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
 import pytesseract
 import pdfplumber
 from pdf2image import convert_from_path
@@ -25,7 +25,33 @@ def detect_file_type(file_path):
         return "unknown"
 
 # -------------------------------
-# 🧠 Smart PDF Extraction
+# 🖼️ Preprocess Images for OCR
+# -------------------------------
+def preprocess_image(img):
+    """Convert image to grayscale, enhance contrast, reduce noise."""
+    img = img.convert("L")  # Grayscale
+    img = img.filter(ImageFilter.MedianFilter())
+    enhancer = ImageEnhance.Contrast(img)
+    img = enhancer.enhance(2)  # Increase contrast
+    width, height = img.size
+    if width < 1000:  # Resize small images
+        img = img.resize((width*2, height*2))
+    return img
+
+# -------------------------------
+# 🖼️ Image Extraction (Improved)
+# -------------------------------
+def extract_text_from_image(file_path):
+    try:
+        img = Image.open(file_path)
+        img = preprocess_image(img)
+        text = pytesseract.image_to_string(img, lang="eng", config="--psm 6 --oem 3")
+        return text.strip()
+    except Exception as e:
+        return f"❌ OCR failed: {str(e)}"
+
+# -------------------------------
+# 🧠 PDF Extraction (Text + Scanned)
 # -------------------------------
 def extract_text_from_pdf(file_path):
     text = ""
@@ -34,37 +60,31 @@ def extract_text_from_pdf(file_path):
             page_text = page.extract_text() or ""
             text += page_text
 
-    # 🧠 Smart detection: scanned vs text-based PDF
+    # If no text found, treat as scanned PDF → OCR each page
     if not text.strip():
         print("⚠️ No text found — scanned PDF detected, switching to OCR...")
         pages = convert_from_path(file_path)
         for page_number, page in enumerate(pages, start=1):
             print(f"🔍 OCR processing page {page_number}...")
-            text += pytesseract.image_to_string(page)
+            page = preprocess_image(page)
+            text += pytesseract.image_to_string(page, lang="eng", config="--psm 6 --oem 3")
     else:
         print("✅ Text-based PDF detected.")
 
-    return text
-
-# -------------------------------
-# 🖼️ Image Extraction
-# -------------------------------
-def extract_text_from_image(file_path):
-    img = Image.open(file_path)
-    return pytesseract.image_to_string(img)
+    return text.strip()
 
 # -------------------------------
 # 📝 DOCX Extraction
 # -------------------------------
 def extract_text_from_docx(file_path):
-    return docx2txt.process(file_path)
+    return docx2txt.process(file_path).strip()
 
 # -------------------------------
 # 📜 TXT Extraction
 # -------------------------------
 def extract_text_from_txt(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
-        return f.read()
+        return f.read().strip()
 
 # -------------------------------
 # 🚀 Main Function (Auto Extract)
@@ -88,7 +108,6 @@ def extract_text_auto(file_path):
     else:
         return "❌ Unsupported or unknown file type."
 
-
 # -------------------------------
 # 🧪 Example Usage
 # -------------------------------
@@ -104,6 +123,6 @@ if __name__ == "__main__":
             print(f"🔹 Extracting from: {file}")
             print("-----------------------------")
             text = extract_text_auto(file)
-            print(text[:1000])  # print first 1000 chars
+            print(text[:1000])  # Print first 1000 characters
         else:
             print(f"⚠️ File not found: {file}")
