@@ -6,13 +6,20 @@ import os
 
 app = FastAPI(title="Document Extraction API", version="1.0")
 
-# ✅ Enable CORS
+# ✅ CORS FIX HERE
+origins = [
+    "http://localhost",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://your-frontend-domain.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # <-- for development, allow all origins (React frontend)
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # <-- allow all HTTP methods: GET, POST, etc.
-    allow_headers=["*"],  # <-- allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 UPLOAD_DIR = "uploads"
@@ -26,17 +33,12 @@ def root():
 async def extract_text(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
 
-    # Save uploaded file temporarily
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        # Call your extractor function
         text = extract_text_auto(file_path)
-
-        # Delete file after processing (optional)
         os.remove(file_path)
-
         return {
             "filename": file.filename,
             "text_length": len(text),
